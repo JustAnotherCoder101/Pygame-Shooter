@@ -41,8 +41,9 @@ class Player(pygame.sprite.Sprite):
 
 class Projectile(pygame.sprite.Sprite):
 
-  def __init__(self, x, y, target_x, target_y):
+  def __init__(self, x, y, target_x, target_y,damage):
     super().__init__()
+    self.damage = damage
     self.image = pygame.image.load("Assets/Bullet.png")
     self.image = pygame.transform.scale(self.image, (15, 10))
 
@@ -66,52 +67,61 @@ class Projectile(pygame.sprite.Sprite):
 
 
 class Zombie(pygame.sprite.Sprite):
-
   def __init__(self, player_rect):
-    super().__init__()
-    self.speed = random.randint(4, 9) / 2
-    self.original_image = pygame.image.load("Assets/Zombie.png")
-    self.original_image = pygame.transform.scale(self.original_image,(50,50))
-    self.image = pygame.image.load("Assets/Zombie.png")
-    self.image = pygame.transform.scale(self.image, (50, 50))
-    self.rect = self.image.get_rect()
-    # Spawn zombie on a random edge of the screen
-    self.spawn_edge = random.choice(["top", "bottom", "left", "right"])
-    if self.spawn_edge == "top":
-      self.rect.x = random.randint(0, 600)
-      self.rect.y = -50
-    elif self.spawn_edge == "bottom":
-      self.rect.x = random.randint(0, 600)
-      self.rect.y = 600
-    elif self.spawn_edge == "left":
-      self.rect.x = -50
-      self.rect.y = random.randint(0, 600)
-    elif self.spawn_edge == "right":
-      self.rect.x = 600
-      self.rect.y = random.randint(0, 600)
-    self.player_rect = player_rect
+      super().__init__()
+      self.speed = random.randint(4, 8) / 2
+      self.original_image = pygame.image.load("Assets/Zombie.png")
+      self.original_image = pygame.transform.scale(self.original_image, (50, 50))
+      self.image = pygame.image.load("Assets/Zombie.png")
+      self.image = pygame.transform.scale(self.image, (50, 50))
+      self.rect = self.image.get_rect()
+      # Spawn zombie on a random edge of the screen
+      self.spawn_edge = random.choice(["top", "bottom", "left", "right"])
+      if self.spawn_edge == "top":
+          self.rect.x = random.randint(0, 600)
+          self.rect.y = -50
+      elif self.spawn_edge == "bottom":
+          self.rect.x = random.randint(0, 600)
+          self.rect.y = 600
+      elif self.spawn_edge == "left":
+          self.rect.x = -50
+          self.rect.y = random.randint(0, 600)
+      elif self.spawn_edge == "right":
+          self.rect.x = 600
+          self.rect.y = random.randint(0, 600)
+      self.player_rect = player_rect
+      self.health = 100  # Initial health
+      self.max_health = 100  # Max health
 
-  def update(self, player_rect,player_x,player_y):
+  def update(self, player_rect, player_x, player_y):
+      self.angle = math.atan2(player_y - self.rect.centery, player_x - self.rect.centerx)
+      self.image = pygame.transform.rotate(self.original_image, -math.degrees(self.angle) + 90)
+      self.player_rect = player_rect
+      dx = self.player_rect.centerx - self.rect.centerx
+      dy = self.player_rect.centery - self.rect.centery
+      length = math.hypot(dx, dy)
+      if length != 0:
+          dx /= length
+          dy /= length
+      if self.rect.colliderect(self.player_rect):
+          pass
+      else:
+          self.rect.x += dx * self.speed
+          self.rect.y += dy * self.speed
+      self.rect = self.image.get_rect(center=self.rect.center)
+      # Kill the zombie if it reaches the player
 
-    self.angle = math.atan2(player_y - self.rect.centery,
-      player_x - self.rect.centerx)
-    self.image = pygame.transform.rotate(self.original_image, -math.degrees(self.angle)+90)
-    self.player_rect = player_rect
-    dx = self.player_rect.centerx - self.rect.centerx
-    dy = self.player_rect.centery - self.rect.centery
-    length = math.hypot(dx, dy)
-    if length != 0:
-      dx /= length
-      dy /= length
-    if self.rect.colliderect(self.player_rect):
-      pass
-    else:  
-      self.rect.x += dx * self.speed
-      self.rect.y += dy * self.speed
-    self.rect = self.image.get_rect(center=self.rect.center)
-    # Kill the zombie if it reaches the player
+      self.draw_health()
 
-
+  def draw_health(self):
+      health_bar_length = 50
+      health = (self.health / self.max_health) * health_bar_length
+      pygame.draw.rect(window, (255, 0, 0), (self.rect.x, self.rect.y - 10, health_bar_length, 5))
+      pygame.draw.rect(window, (0, 255, 0), (self.rect.x, self.rect.y - 10, health, 5))
+  def take_damage(self, damage):
+      self.health -= damage
+      if self.health <= 0:
+        self.kill()
 
 PLAYER = Player()  # Instantiate the Player sprite
 
@@ -126,7 +136,11 @@ Crosshair = pygame.transform.scale(Crosshair, (30, 30))
 
 cooldown = 0
 
-SPEED = 5
+SPEED = 6
+
+DAMAGE = 34
+
+ZombieSpawnTimer = 0
 
 os.system("clear")
 print('''    CONTROLS
@@ -142,7 +156,7 @@ while running:
     if event.type == pygame.MOUSEBUTTONDOWN:
       if event.button == 1:  # Left mouse button
         new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
-                                    *pygame.mouse.get_pos())
+                                    *pygame.mouse.get_pos(),DAMAGE)
         Bullets.add(new_projectile)
 
   # Check for continuous key presses
@@ -157,29 +171,37 @@ while running:
     PLAYER.rect.x += SPEED  # Move player right
   if keys[pygame.K_SPACE] and cooldown < 1:
     new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
-                                *pygame.mouse.get_pos())
+                                *pygame.mouse.get_pos(),DAMAGE)
     Bullets.add(new_projectile)
-    cooldown = 10
+    cooldown = 8
 
   cooldown -= 1
 
-  if len(Zombies) < 3:  # Spawn up to 5 zombies
-    new_zombie = Zombie(PLAYER.rect)
-    Zombies.add(new_zombie)
+  if ZombieSpawnTimer < 1:
+    if len(Zombies) < 4:  # Spawn up to 5 zombies
+      new_zombie = Zombie(PLAYER.rect)
+      Zombies.add(new_zombie)
+      ZombieSpawnTimer = random.randint(20, 50)
+  else:
+    ZombieSpawnTimer -= 1
+      
+    
   MousePos = pygame.mouse.get_pos()
+    
   PLAYER.tick(MousePos[0], MousePos[1])
   Players.update()
   Bullets.update()
-  Zombies.update(PLAYER.rect,PLAYER.rect.centerx,PLAYER.rect.centery)
+
 
   for bullet in Bullets:
-    zombie_hit_list = pygame.sprite.spritecollide(bullet, Zombies, True)
-    for zombie in zombie_hit_list:
-      bullet.kill()
+      zombie_hit_list = pygame.sprite.spritecollide(bullet, Zombies, False)
+      for zombie in zombie_hit_list:
+          bullet.kill()
+          zombie.take_damage(bullet.damage)
 
   # Fill with white color
   window.fill((255, 255, 255))
-
+  Zombies.update(PLAYER.rect,PLAYER.rect.centerx,PLAYER.rect.centery)
   Players.draw(window)
   Bullets.draw(window)
   Zombies.draw(window)
