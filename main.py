@@ -5,6 +5,7 @@ import sys
 
 import pygame
 
+
 pygame.init()
 
 # Create a Pygame window
@@ -69,11 +70,26 @@ class Projectile(pygame.sprite.Sprite):
 class Zombie(pygame.sprite.Sprite):
   def __init__(self, player_rect):
       super().__init__()
-      self.speed = random.randint(4, 8) / 2
+      self.num = random.randint(1,3)
+      if self.num == 3:
+        self.type = "Big Zombie"
+      else:
+        self.type = "Zombie"
+
+      if self.type == "Big Zombie":
+        self.health = 190  
+        self.max_health = 190 
+        self.size = 75
+        self.speed = random.randint(3, 6) / 2
+      else: 
+        self.health = 100  
+        self.max_health = 100 
+        self.size = 50
+        self.speed = random.randint(5, 9) / 2
       self.original_image = pygame.image.load("Assets/Zombie.png")
-      self.original_image = pygame.transform.scale(self.original_image, (50, 50))
+      self.original_image = pygame.transform.scale(self.original_image, (self.size, self.size))
       self.image = pygame.image.load("Assets/Zombie.png")
-      self.image = pygame.transform.scale(self.image, (50, 50))
+      self.image = pygame.transform.scale(self.image, (self.size, self.size))
       self.rect = self.image.get_rect()
       # Spawn zombie on a random edge of the screen
       self.spawn_edge = random.choice(["top", "bottom", "left", "right"])
@@ -90,8 +106,7 @@ class Zombie(pygame.sprite.Sprite):
           self.rect.x = 600
           self.rect.y = random.randint(0, 600)
       self.player_rect = player_rect
-      self.health = 100  # Initial health
-      self.max_health = 100  # Max health
+
 
   def update(self, player_rect, player_x, player_y):
       self.angle = math.atan2(player_y - self.rect.centery, player_x - self.rect.centerx)
@@ -116,6 +131,8 @@ class Zombie(pygame.sprite.Sprite):
   def draw_health(self):
       health_bar_length = 50
       health = (self.health / self.max_health) * health_bar_length
+
+      pygame.draw.rect(window, (0, 0, 0), (self.rect.x-5, self.rect.y - 15, health_bar_length+10, 15))
       pygame.draw.rect(window, (255, 0, 0), (self.rect.x, self.rect.y - 10, health_bar_length, 5))
       pygame.draw.rect(window, (0, 255, 0), (self.rect.x, self.rect.y - 10, health, 5))
   def take_damage(self, damage):
@@ -173,7 +190,7 @@ while running:
     new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
                                 *pygame.mouse.get_pos(),DAMAGE)
     Bullets.add(new_projectile)
-    cooldown = 8
+    cooldown = 6
 
   cooldown -= 1
 
