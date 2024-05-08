@@ -50,8 +50,8 @@ class Projectile(pygame.sprite.Sprite):
 
     self.rect = self.image.get_rect()
     distance = math.sqrt((target_x - x)**2 + (target_y - y)**2)
-    self.x_speed = (target_x - x) / distance * 15
-    self.y_speed = (target_y - y) / distance * 15
+    self.x_speed = (target_x - x) / distance * 18
+    self.y_speed = (target_y - y) / distance * 18
     self.rect.center = (x + self.x_speed * 2, y + self.y_speed * 2)
     self.angle = math.atan2(target_y - self.rect.centery,
                             target_x - self.rect.centerx)
@@ -70,8 +70,8 @@ class Projectile(pygame.sprite.Sprite):
 class Zombie(pygame.sprite.Sprite):
   def __init__(self, player_rect):
       super().__init__()
-      self.num = random.randint(1,3)
-      if self.num == 3:
+      self.num = random.randint(1,4)
+      if self.num == 4:
         self.type = "Big Zombie"
       else:
         self.type = "Zombie"
@@ -190,12 +190,12 @@ while running:
     new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
                                 *pygame.mouse.get_pos(),DAMAGE)
     Bullets.add(new_projectile)
-    cooldown = 6
+    cooldown = 4
 
   cooldown -= 1
 
   if ZombieSpawnTimer < 1:
-    if len(Zombies) < 4:  # Spawn up to 5 zombies
+    if len(Zombies) < 6:  # Spawn up to 5 zombies
       new_zombie = Zombie(PLAYER.rect)
       Zombies.add(new_zombie)
       ZombieSpawnTimer = random.randint(20, 50)
