@@ -81,11 +81,15 @@ class Zombie(pygame.sprite.Sprite):
         self.max_health = 190 
         self.size = 75
         self.speed = random.randint(3, 6) / 2
+        self.damage = 10
       else: 
         self.health = 100  
         self.max_health = 100 
         self.size = 50
         self.speed = random.randint(5, 9) / 2
+        self.damage = 5
+
+      self.attacking = False
       self.original_image = pygame.image.load("Assets/Zombie.png")
       self.original_image = pygame.transform.scale(self.original_image, (self.size, self.size))
       self.image = pygame.image.load("Assets/Zombie.png")
@@ -106,7 +110,7 @@ class Zombie(pygame.sprite.Sprite):
           self.rect.x = 600
           self.rect.y = random.randint(0, 600)
       self.player_rect = player_rect
-
+      
 
   def update(self, player_rect, player_x, player_y):
       self.angle = math.atan2(player_y - self.rect.centery, player_x - self.rect.centerx)
@@ -119,8 +123,9 @@ class Zombie(pygame.sprite.Sprite):
           dx /= length
           dy /= length
       if self.rect.colliderect(self.player_rect):
-          pass
+          self.attacking = True
       else:
+          self.attacking = False
           self.rect.x += dx * self.speed
           self.rect.y += dy * self.speed
       self.rect = self.image.get_rect(center=self.rect.center)
@@ -158,6 +163,10 @@ SPEED = 6
 DAMAGE = 34
 
 ZombieSpawnTimer = 0
+
+Health = 100
+MaxHealth = 100
+canAttack = 0
 
 os.system("clear")
 print('''    CONTROLS
@@ -215,6 +224,19 @@ while running:
       for zombie in zombie_hit_list:
           bullet.kill()
           zombie.take_damage(bullet.damage)
+  attacked = 0      
+  for zombie in Zombies:
+    if zombie.attacking and canAttack < 0:
+      attacked = 1
+      Health -= zombie.damage
+
+  
+  if attacked == 1:
+    canAttack = 12   
+
+  canAttack -= 1
+    
+      
 
   # Fill with white color
   window.fill((255, 255, 255))
@@ -222,14 +244,24 @@ while running:
   Players.draw(window)
   Bullets.draw(window)
   Zombies.draw(window)
+  
 
   fps = int(clock.get_fps())
   fps_text = font.render(f"FPS: {fps}", True, (255, 0, 0))
   window.blit(fps_text, (10, 10))  # Display FPS in the top left corner
   window.blit(Crosshair, (MousePos[0] - 15, MousePos[1] - 15))
-
+  
+  pygame.draw.rect(window, (0, 0, 0), (400, 10, 190, 30))
+  pygame.draw.rect(window, (255, 0, 0), (410, 20, 170, 10))
+  health_width = (Health / MaxHealth) * 170
+  pygame.draw.rect(window, (0, 255, 0), (410, 20, health_width, 10))
+  
+  if Health <= 0:
+    running = False
+    
   pygame.display.update()
   clock.tick(30)
 
 pygame.quit()
+
 sys.exit()
