@@ -8,6 +8,7 @@ import pygame
 
 pygame.init()
 
+
 # Create a Pygame window
 window = pygame.display.set_mode((600, 600))
 pygame.display.set_caption("Shooter")
@@ -67,9 +68,13 @@ class Projectile(pygame.sprite.Sprite):
       self.kill()
 
 
+
 class Zombie(pygame.sprite.Sprite):
   def __init__(self, player_rect):
       super().__init__()
+      global score
+      score = 0
+    
       self.num = random.randint(1,4)
       if self.num == 4:
         self.type = "Big Zombie"
@@ -82,12 +87,14 @@ class Zombie(pygame.sprite.Sprite):
         self.size = 75
         self.speed = random.randint(3, 6) / 2
         self.damage = 10
+        self.score = 2
       else: 
         self.health = 100  
         self.max_health = 100 
         self.size = 50
         self.speed = random.randint(5, 9) / 2
         self.damage = 5
+        self.score = 1
 
       self.attacking = False
       self.original_image = pygame.image.load("Assets/Zombie.png")
@@ -143,8 +150,12 @@ class Zombie(pygame.sprite.Sprite):
   def take_damage(self, damage):
       self.health -= damage
       if self.health <= 0:
+        global score
+        score += self.score
+
         self.kill()
 
+  
 PLAYER = Player()  # Instantiate the Player sprite
 
 Players = pygame.sprite.Group()
@@ -157,6 +168,8 @@ Crosshair = pygame.image.load("Assets/Crosshair.png")
 Crosshair = pygame.transform.scale(Crosshair, (30, 30))
 
 cooldown = 0
+
+SCORE = 0
 
 SPEED = 6
 
@@ -199,7 +212,7 @@ while running:
     new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
                                 *pygame.mouse.get_pos(),DAMAGE)
     Bullets.add(new_projectile)
-    cooldown = 4
+    cooldown = 7
 
   cooldown -= 1
 
@@ -223,7 +236,10 @@ while running:
       zombie_hit_list = pygame.sprite.spritecollide(bullet, Zombies, False)
       for zombie in zombie_hit_list:
           bullet.kill()
+          if zombie.health - bullet.damage <= 0:
+              SCORE += zombie.score
           zombie.take_damage(bullet.damage)
+          
   attacked = 0      
   for zombie in Zombies:
     if zombie.attacking and canAttack < 0:
@@ -232,7 +248,7 @@ while running:
 
   
   if attacked == 1:
-    canAttack = 12   
+    canAttack = 14   
 
   canAttack -= 1
     
@@ -248,6 +264,8 @@ while running:
 
   fps = int(clock.get_fps())
   fps_text = font.render(f"FPS: {fps}", True, (255, 0, 0))
+  score_text = font.render(f"Score: {SCORE}", True, (255, 0, 0))
+  window.blit(score_text, (10, 40))
   window.blit(fps_text, (10, 10))  # Display FPS in the top left corner
   window.blit(Crosshair, (MousePos[0] - 15, MousePos[1] - 15))
   
