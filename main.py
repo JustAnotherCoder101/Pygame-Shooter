@@ -29,8 +29,10 @@ class Player(pygame.sprite.Sprite):
     self.rect = self.image.get_rect()
     self.rect.x = 300 - 25
     self.rect.y = 300 - 25
-
+    self.front_x = self.rect.centerx  
+    self.front_y = self.rect.centery 
   def tick(self, target_x, target_y):
+
     self.angle = math.atan2(target_y - self.rect.centery,
                             target_x - self.rect.centerx)
     self.image = pygame.transform.rotate(
@@ -39,6 +41,11 @@ class Player(pygame.sprite.Sprite):
     self.rect = self.image.get_rect(center=self.rect.center)
     self.rect.x = max(0, min(self.rect.x, 600 - self.rect.width))
     self.rect.y = max(0, min(self.rect.y, 600 - self.rect.height))
+    self.front_x = self.rect.centerx + 25 * math.cos(self.angle)  # Calculate front x coordinate
+    self.front_y = self.rect.centery + 25 * math.sin(self.angle)
+    self.end_x = self.front_x + 50 * math.cos(self.angle)
+    self.end_y = self.front_y + 50 * math.sin(self.angle)
+
 
 
 class Projectile(pygame.sprite.Sprite):
@@ -68,7 +75,6 @@ class Projectile(pygame.sprite.Sprite):
       self.kill()
 
 
-
 class Zombie(pygame.sprite.Sprite):
   def __init__(self, player_rect):
       super().__init__()
@@ -85,14 +91,14 @@ class Zombie(pygame.sprite.Sprite):
         self.health = 190  
         self.max_health = 190 
         self.size = 75
-        self.speed = random.randint(3, 6) / 2
+        self.speed = random.randint(2, 5) / 2
         self.damage = 10
         self.score = 2
       else: 
         self.health = 100  
         self.max_health = 100 
         self.size = 50
-        self.speed = random.randint(5, 9) / 2
+        self.speed = random.randint(4, 8) / 2
         self.damage = 5
         self.score = 1
 
@@ -155,14 +161,40 @@ class Zombie(pygame.sprite.Sprite):
 
         self.kill()
 
+class Gun(pygame.sprite.Sprite):
+  def __init__(self):
+    super().__init__()
+    self.ORIGINALimage = pygame.transform.scale(pygame.image.load("Assets/Guns/AK-47.png"),(66,24))
+    self.image = self.ORIGINALimage
+    
+    self.rect = self.image.get_rect()
+
+  def tick(self,Firing,x,y,px,py,posNFX,posNFY):
+    if Firing:
+      self.angle = math.atan2(py-y,px-x)
+      self.image = pygame.transform.rotate(self.ORIGINALimage, -math.degrees(self.angle)+180)
+      self.rect = self.image.get_rect(center=(px + 50 * math.cos(self.angle), py + 0 * math.sin(self.angle)))  # Adjust gun position slightly forward in the angle
+    else:
+      self.angle = math.atan2(posNFY-y,posNFX-x)+180
+      self.image = pygame.transform.rotate(self.ORIGINALimage, -math.degrees(self.angle)+180)
+      self.rect = self.image.get_rect(center=(posNFX + 1 * math.cos(self.angle), posNFY + 10 * math.sin(self.angle)))  # Adjust gun position slightly forward in the angle
+    self.rect.x = x - 25
+    self.rect.y = y - 25
+    
+      
+      
+      
   
-PLAYER = Player()  # Instantiate the Player sprite
+PLAYER = Player() # Instantiate the Player sprite
+GUN = Gun()
 
 Players = pygame.sprite.Group()
 Players.add(PLAYER)
 
 Zombies = pygame.sprite.Group()
 Bullets = pygame.sprite.Group()
+Guns = pygame.sprite.Group()
+Guns.add(GUN)
 
 Crosshair = pygame.image.load("Assets/Crosshair.png")
 Crosshair = pygame.transform.scale(Crosshair, (30, 30))
@@ -171,6 +203,7 @@ cooldown = 0
 
 SCORE = 0
 
+FIRING = False
 SPEED = 6
 
 DAMAGE = 34
@@ -208,19 +241,22 @@ while running:
     PLAYER.rect.x -= SPEED  # Move player left
   if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
     PLAYER.rect.x += SPEED  # Move player right
-  if keys[pygame.K_SPACE] and cooldown < 1:
-    new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
+  if keys[pygame.K_SPACE]:
+    FIRING = True
+    if cooldown < 1:
+      new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
                                 *pygame.mouse.get_pos(),DAMAGE)
-    Bullets.add(new_projectile)
-    cooldown = 7
-
+      Bullets.add(new_projectile)
+      cooldown = 8
+  else:
+    FIRING = False
   cooldown -= 1
 
   if ZombieSpawnTimer < 1:
-    if len(Zombies) < 6:  # Spawn up to 5 zombies
+    if len(Zombies) < 4: 
       new_zombie = Zombie(PLAYER.rect)
       Zombies.add(new_zombie)
-      ZombieSpawnTimer = random.randint(20, 50)
+      ZombieSpawnTimer = random.randint(30, 60)
   else:
     ZombieSpawnTimer -= 1
       
@@ -229,6 +265,8 @@ while running:
     
   PLAYER.tick(MousePos[0], MousePos[1])
   Players.update()
+  GUN.tick(FIRING,PLAYER.front_x,PLAYER.front_y,MousePos[0],MousePos[1],PLAYER.end_x,PLAYER.end_y)
+  Guns.update()
   Bullets.update()
 
 
@@ -258,6 +296,7 @@ while running:
   window.fill((255, 255, 255))
   Zombies.update(PLAYER.rect,PLAYER.rect.centerx,PLAYER.rect.centery)
   Players.draw(window)
+  Guns.draw(window)
   Bullets.draw(window)
   Zombies.draw(window)
   
@@ -278,8 +317,7 @@ while running:
     running = False
     
   pygame.display.update()
-  clock.tick(30)
-
+  clock.tick(45)
 pygame.quit()
 
 sys.exit()
