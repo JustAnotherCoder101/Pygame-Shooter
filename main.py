@@ -19,6 +19,7 @@ font = pygame.font.Font(None, 36)
 clock = pygame.time.Clock()
 
 
+
 # Define a sprite class
 class Player(pygame.sprite.Sprite):
 
@@ -199,6 +200,9 @@ Guns.add(GUN)
 Crosshair = pygame.image.load("Assets/Crosshair.png")
 Crosshair = pygame.transform.scale(Crosshair, (30, 30))
 
+BACKGROUND = pygame.image.load("Assets/Background.png")
+BACKGROUND = pygame.transform.scale(BACKGROUND,(600, 600))
+
 cooldown = 0
 
 SCORE = 0
@@ -207,6 +211,8 @@ FIRING = False
 SPEED = 6
 
 DAMAGE = 34
+
+DEVMODE = False
 
 ZombieSpawnTimer = 0
 
@@ -233,6 +239,8 @@ while running:
 
   # Check for continuous key presses
   keys = pygame.key.get_pressed()
+  if keys[pygame.K_0]:
+    DEVMODE = True
   if keys[pygame.K_w] or keys[pygame.K_UP]:
     PLAYER.rect.y -= SPEED  # Move player up
   if keys[pygame.K_s] or keys[pygame.K_DOWN]:
@@ -247,7 +255,7 @@ while running:
       new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
                                 *pygame.mouse.get_pos(),DAMAGE)
       Bullets.add(new_projectile)
-      cooldown = 8
+      cooldown = 1 if DEVMODE else 7
   else:
     FIRING = False
   cooldown -= 1
@@ -294,12 +302,12 @@ while running:
 
   # Fill with white color
   window.fill((255, 255, 255))
+  window.blit(BACKGROUND,(0,0))
   Zombies.update(PLAYER.rect,PLAYER.rect.centerx,PLAYER.rect.centery)
   Players.draw(window)
-  Guns.draw(window)
   Bullets.draw(window)
   Zombies.draw(window)
-  
+  Guns.draw(window)
 
   fps = int(clock.get_fps())
   fps_text = font.render(f"FPS: {fps}", True, (255, 0, 0))
