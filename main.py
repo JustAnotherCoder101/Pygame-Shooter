@@ -77,14 +77,19 @@ class Projectile(pygame.sprite.Sprite):
 
 
 class Zombie(pygame.sprite.Sprite):
-  def __init__(self, player_rect):
+  def __init__(self, player_rect,IS_Boss):
       super().__init__()
       global score
       score = 0
-    
-      self.num = random.randint(1,4)
-      if self.num == 4:
+      
+      self.Is_Boss = IS_Boss
+
+        
+      self.num = random.randint(1,5)
+      if self.num == 5 or self.num == 4:
         self.type = "Big Zombie"
+      elif self.num == 3:
+        self.type = "Small Zombie"
       else:
         self.type = "Zombie"
 
@@ -94,14 +99,35 @@ class Zombie(pygame.sprite.Sprite):
         self.size = 75
         self.speed = random.randint(2, 5) / 2
         self.damage = 10
-        self.score = 2
-      else: 
+        self.score = 3
+        self.Bar_Length = 75
+        
+      elif self.type == "Small Zombie":
+          self.health = 66
+          self.max_health = 66
+          self.size = 30
+          self.speed = random.randint(8, 14) / 2
+          self.damage = 3
+          self.score = 1
+          self.Bar_Length = 25
+      else:
         self.health = 100  
         self.max_health = 100 
         self.size = 50
-        self.speed = random.randint(4, 8) / 2
+        self.speed = random.randint(3, 7) / 2
         self.damage = 5
-        self.score = 1
+        self.score = 2
+        self.Bar_Length = 50
+
+      if self.Is_Boss:
+        self.health = 600
+        self.max_health = 600 
+        self.size = 180
+        self.speed = 1
+        self.damage = 20
+        self.score = 50
+        self.Bar_Length = 150
+        
 
       self.attacking = False
       self.original_image = pygame.image.load("Assets/Zombie.png")
@@ -147,13 +173,17 @@ class Zombie(pygame.sprite.Sprite):
 
       self.draw_health()
 
-  def draw_health(self):
-      health_bar_length = 50
-      health = (self.health / self.max_health) * health_bar_length
+  def draw_health(self):  
+      health = (self.health / self.max_health) * self.Bar_Length
 
-      pygame.draw.rect(window, (0, 0, 0), (self.rect.x-5, self.rect.y - 15, health_bar_length+10, 15))
-      pygame.draw.rect(window, (255, 0, 0), (self.rect.x, self.rect.y - 10, health_bar_length, 5))
+      pygame.draw.rect(window, (0, 0, 0), (self.rect.x-5, self.rect.y - 15, self.Bar_Length+10, 15))
+      pygame.draw.rect(window, (255, 0, 0), (self.rect.x, self.rect.y - 10, self.Bar_Length, 5))
       pygame.draw.rect(window, (0, 255, 0), (self.rect.x, self.rect.y - 10, health, 5))
+      if self.Is_Boss:
+        TEXT = font.render("BOSS", True, (205, 50, 50))
+        TEXT2 = font.render("BOSS", True, (255, 0, 0))
+        window.blit(TEXT, (self.rect.x - 15, self.rect.y - 30))
+        window.blit(TEXT2, (self.rect.x - 10, self.rect.y - 35))
   def take_damage(self, damage):
       self.health -= damage
       if self.health <= 0:
@@ -216,10 +246,15 @@ DEVMODE = False
 
 ZombieSpawnTimer = 0
 
+IS_BOSS = False
+BOSS_Count = [0,25]
+
+
 Health = 100
 MaxHealth = 100
 canAttack = 0
-
+canZOMBIESPAWN=False
+BUTTON_DOWN = False
 os.system("clear")
 print('''    CONTROLS
   WASD keys or arrow keys to move
@@ -233,9 +268,12 @@ while running:
       running = False
     if event.type == pygame.MOUSEBUTTONDOWN:
       if event.button == 1:  # Left mouse button
-        new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
-                                    *pygame.mouse.get_pos(),DAMAGE)
-        Bullets.add(new_projectile)
+        BUTTON_DOWN = True
+    if event.type == pygame.MOUSEBUTTONUP:
+      if event.button == 1:  # Left mouse button
+        BUTTON_DOWN = False
+
+
 
   # Check for continuous key presses
   keys = pygame.key.get_pressed()
@@ -249,7 +287,7 @@ while running:
     PLAYER.rect.x -= SPEED  # Move player left
   if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
     PLAYER.rect.x += SPEED  # Move player right
-  if keys[pygame.K_SPACE]:
+  if keys[pygame.K_SPACE] or BUTTON_DOWN:
     FIRING = True
     if cooldown < 1:
       new_projectile = Projectile(PLAYER.rect.centerx, PLAYER.rect.centery,
@@ -259,14 +297,22 @@ while running:
   else:
     FIRING = False
   cooldown -= 1
-
-  if ZombieSpawnTimer < 1:
-    if len(Zombies) < 4: 
-      new_zombie = Zombie(PLAYER.rect)
-      Zombies.add(new_zombie)
-      ZombieSpawnTimer = random.randint(30, 60)
-  else:
-    ZombieSpawnTimer -= 1
+  if canZOMBIESPAWN:
+    
+    if ZombieSpawnTimer < 1:
+      if len(Zombies) < 4: 
+        new_zombie = Zombie(PLAYER.rect,IS_BOSS)
+        Zombies.add(new_zombie)
+        ZombieSpawnTimer = random.randint(30, 60)
+        BOSS_Count[0] += 1
+        if BOSS_Count[0] == BOSS_Count[1] :
+          IS_BOSS = True
+          BOSS_Count[0] = 0
+          BOSS_Count[1] *=2
+        else:
+          IS_BOSS = False
+    else:
+      ZombieSpawnTimer -= 1
       
     
   MousePos = pygame.mouse.get_pos()
@@ -285,7 +331,11 @@ while running:
           if zombie.health - bullet.damage <= 0:
               SCORE += zombie.score
           zombie.take_damage(bullet.damage)
-          
+
+  if keys[pygame.K_q]:
+    canAttack = 20
+  if keys[pygame.K_1]:
+    canZOMBIESPAWN = True
   attacked = 0      
   for zombie in Zombies:
     if zombie.attacking and canAttack < 0:
@@ -297,11 +347,9 @@ while running:
     canAttack = 14   
 
   canAttack -= 1
+  
     
-      
 
-  # Fill with white color
-  window.fill((255, 255, 255))
   window.blit(BACKGROUND,(0,0))
   Zombies.update(PLAYER.rect,PLAYER.rect.centerx,PLAYER.rect.centery)
   Players.draw(window)
@@ -312,8 +360,10 @@ while running:
   fps = int(clock.get_fps())
   fps_text = font.render(f"FPS: {fps}", True, (255, 0, 0))
   score_text = font.render(f"Score: {SCORE}", True, (255, 0, 0))
+  BOSS_text = font.render(f"Zombies Until Boss: {BOSS_Count[1]- BOSS_Count[0]}", True, (255, 0, 0))
   window.blit(score_text, (10, 40))
-  window.blit(fps_text, (10, 10))  # Display FPS in the top left corner
+  window.blit(fps_text, (10, 10))  
+  window.blit(BOSS_text, (10, 70))  
   window.blit(Crosshair, (MousePos[0] - 15, MousePos[1] - 15))
   
   pygame.draw.rect(window, (0, 0, 0), (400, 10, 190, 30))
@@ -325,6 +375,7 @@ while running:
     running = False
     
   pygame.display.update()
+  
   clock.tick(45)
 pygame.quit()
 
