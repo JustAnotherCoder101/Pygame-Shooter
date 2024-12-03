@@ -7,6 +7,19 @@ import pygame
 
 pygame.init()
 
+pygame.mixer.init()
+
+# Load sounds
+sound_group = []
+
+#pew_sound = pygame.mixer.Sound('pew.wav')
+FIRE_Sound = pygame.mixer.Sound('damage.mp3')
+EXPLOSION_Sound = pygame.mixer.Sound('kill.mp3')
+ 
+#Player_Damage = pygame.mixer.Sound('Crunch.wav')
+
+sound_group.append(EXPLOSION_Sound)
+
 # Create a Pygame window
 window = pygame.display.set_mode((600, 600))
 pygame.display.set_caption("Shooter")
@@ -63,6 +76,7 @@ class Projectile(pygame.sprite.Sprite):
 
   def __init__(self, x, y, target_x, target_y, damage):
     super().__init__()
+    FIRE_Sound.play()
     self.damage = damage
     self.image = pygame.image.load("Assets/Bullet.png")
     self.image = pygame.transform.scale(self.image, (15, 10))
@@ -146,6 +160,7 @@ class Grenade(pygame.sprite.Sprite):
         self.kill()
 
   def Explode(self):
+    EXPLOSION_Sound.play()
     self.OY = self.rect.y
     self.OX = self.rect.x
     self.exploding = True
